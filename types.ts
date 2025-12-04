@@ -1,4 +1,5 @@
 
+
 export type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced';
 
 export interface Dataset {
@@ -37,6 +38,7 @@ export interface QueryResult {
   columns: string[];
   durationMs: number;
   bytesProcessed: number;
+  totalRowCount: number; // Simulated total rows in DB
   costEstimate: number; // In USD (fictional small amount)
   error?: string;
   isDryRun?: boolean;

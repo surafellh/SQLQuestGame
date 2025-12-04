@@ -9,6 +9,7 @@ interface SqlComposerProps {
   insertTrigger: number;
   insertText: string | null;
   costEstimate: number | null;
+  externalQueryUpdate?: { text: string; timestamp: number } | null;
 }
 
 const SQL_CATEGORIES: Record<string, string[]> = {
@@ -49,7 +50,8 @@ export const SqlComposer: React.FC<SqlComposerProps> = ({
   isRunning, 
   insertTrigger, 
   insertText,
-  costEstimate
+  costEstimate,
+  externalQueryUpdate
 }) => {
   const [query, setQuery] = useState(initialQuery);
   const [activeTab, setActiveTab] = useState<string>("Data Ops");
@@ -92,13 +94,20 @@ export const SqlComposer: React.FC<SqlComposerProps> = ({
     }
   };
 
-  // Handle updates from parent (Schema Explorer)
+  // Handle updates from parent (Schema Explorer - Insert)
   useEffect(() => {
     if (insertText) {
       insertAtCursor(insertText);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [insertTrigger]);
+
+  // Handle overwrite updates from parent (Preview Table)
+  useEffect(() => {
+    if (externalQueryUpdate) {
+        setQuery(externalQueryUpdate.text);
+    }
+  }, [externalQueryUpdate]);
 
   const toggleCategory = (cat: string) => {
       setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));

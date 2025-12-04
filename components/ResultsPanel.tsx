@@ -1,7 +1,8 @@
 
+
 import React from 'react';
 import { QueryResult, Challenge } from '../types';
-import { Clock, Database, CheckCircle, XCircle, Trophy, Lightbulb, ArrowRight, BookOpen } from 'lucide-react';
+import { Clock, Database, CheckCircle, XCircle, Trophy, Lightbulb, ArrowRight, BookOpen, Activity } from 'lucide-react';
 
 interface ResultsPanelProps {
   result: QueryResult | null;
@@ -28,7 +29,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         <div className="p-3 border-b border-quest-700 bg-quest-800 text-xs font-bold text-gray-400 uppercase tracking-wider">
           Thought Process
         </div>
-        <div className="p-6 overflow-y-auto">
+        <div className="p-6 overflow-y-auto custom-scrollbar">
           <div className="bg-quest-800/50 rounded-lg p-6 border border-quest-700 text-center mb-8">
             <Database size={48} className="mx-auto mb-4 text-quest-500 opacity-50" />
             <h3 className="text-lg font-medium text-white mb-2">Ready to Query</h3>
@@ -70,7 +71,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   // State 2: Results Display
   return (
     <div className="h-full flex flex-col bg-quest-900 overflow-hidden">
-      {/* Metrics Header */}
+      {/* Metrics Header - Kept for quick summary at top */}
       <div className="p-3 bg-quest-800 border-b border-quest-700 flex items-center gap-6 text-xs text-quest-400 shrink-0">
         <div className="flex items-center gap-1.5">
           <Clock size={14} />
@@ -78,10 +79,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         </div>
         <div className="flex items-center gap-1.5">
           <Database size={14} />
-          <span>{(result.bytesProcessed / 1024 / 1024).toFixed(2)} MB processed</span>
-        </div>
-        <div className="flex-1 text-right">
-            {result.rows.length} rows
+          <span>{(result.bytesProcessed / 1024 / 1024).toFixed(2)} MB</span>
         </div>
       </div>
 
@@ -131,7 +129,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
       {/* Error State */}
       {result.error && (
-        <div className="p-6">
+        <div className="p-6 flex-1 overflow-auto custom-scrollbar">
             <div className="bg-red-900/20 border border-red-500/30 rounded p-4 flex gap-3 text-red-200">
                 <XCircle className="shrink-0 text-red-500" />
                 <div className="font-mono text-sm break-all">
@@ -143,7 +141,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
       {/* Data Table */}
       {!result.error && result.rows.length > 0 && (
-        <div className="flex-1 overflow-auto bg-quest-900 relative">
+        <div className="flex-1 overflow-auto bg-quest-900 relative custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[max-content]">
             <thead className="sticky top-0 bg-quest-800 z-10 shadow-sm">
               <tr>
@@ -170,10 +168,47 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       )}
 
        {!result.error && result.rows.length === 0 && (
-          <div className="p-8 text-center text-gray-500">
+          <div className="flex-1 p-8 text-center text-gray-500">
               No results returned from query.
           </div>
        )}
+
+      {/* MySQL-style Footer Status Bar */}
+      <div className="bg-quest-800 border-t border-quest-700 p-1.5 px-3 flex items-center justify-between text-[11px] text-gray-400 font-mono shrink-0 select-none z-20 shadow-md">
+          <div className="flex items-center gap-4 sm:gap-6">
+              <span className="flex items-center gap-1.5 font-medium">
+                 <div className={`w-2 h-2 rounded-full ${result.error ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                 {result.error ? 'Query Failed' : 'Success'}
+              </span>
+              
+              {!result.error && (
+                <>
+                  <div className="flex items-center gap-1.5 border-l border-quest-600 pl-4">
+                      <span className="text-quest-500">Rows:</span> 
+                      <span className="text-gray-200">
+                        {result.rows.length === result.totalRowCount 
+                            ? result.rows.length 
+                            : `Showing ${result.rows.length} of ${result.totalRowCount.toLocaleString()}`}
+                      </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 border-l border-quest-600 pl-4">
+                      <span className="text-quest-500">Duration:</span> 
+                      <span className="text-gray-200">{(result.durationMs / 1000).toFixed(3)} sec</span>
+                  </div>
+                   <div className="hidden md:flex items-center gap-1.5 border-l border-quest-600 pl-4">
+                      <span className="text-quest-500">Scanned:</span> 
+                      <span className="text-gray-200">{(result.bytesProcessed / 1024).toFixed(1)} KB</span>
+                  </div>
+                </>
+              )}
+          </div>
+          <div className="hidden sm:flex items-center gap-4">
+              <span className="flex items-center gap-1.5 text-quest-500">
+                 <Activity size={10} />
+                 BigQuery Engine
+              </span>
+          </div>
+      </div>
     </div>
   );
 };

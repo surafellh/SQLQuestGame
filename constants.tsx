@@ -1,13 +1,13 @@
 
 import { Dataset, UserProfile, SystemLog } from "./types";
-import { Database, TrendingUp, Github, Book, MessageSquare, Layers, Bike, Globe } from "lucide-react";
+import { Database, TrendingUp, Github, Layers, Bike, Globe } from "lucide-react";
 import React from 'react';
 
 export const DATASETS: Dataset[] = [
   {
     id: "nyc-taxi",
     name: "NYC Taxi Trips",
-    description: "Data on millions of taxi trips in New York City, including fares, locations, and timestamps.",
+    description: "Real-world taxi data including fares, payment types, locations, and complex rate codes.",
     icon: "taxi",
     tables: [
       {
@@ -18,15 +18,41 @@ export const DATASETS: Dataset[] = [
           { name: "passenger_count", type: "INTEGER" },
           { name: "trip_distance", type: "FLOAT" },
           { name: "fare_amount", type: "FLOAT" },
-          { name: "payment_type", type: "STRING" }
+          { name: "extra", type: "FLOAT" },
+          { name: "mta_tax", type: "FLOAT" },
+          { name: "tip_amount", type: "FLOAT" },
+          { name: "tolls_amount", type: "FLOAT" },
+          { name: "improvement_surcharge", type: "FLOAT" },
+          { name: "total_amount", type: "FLOAT" },
+          { name: "payment_type", type: "STRING" },
+          { name: "pickup_location_id", type: "INTEGER" },
+          { name: "dropoff_location_id", type: "INTEGER" },
+          { name: "vendor_id", type: "STRING" },
+          { name: "rate_code", type: "INTEGER" },
+          { name: "store_and_fwd_flag", type: "STRING" }
         ]
       },
       {
-        name: "zones",
+        name: "taxi_zone_geom",
         columns: [
           { name: "zone_id", type: "INTEGER" },
           { name: "zone_name", type: "STRING" },
-          { name: "borough", type: "STRING" }
+          { name: "borough", type: "STRING" },
+          { name: "zone_geom", type: "GEOGRAPHY" }
+        ]
+      },
+      {
+        name: "rate_codes",
+        columns: [
+          { name: "rate_code_id", type: "INTEGER" },
+          { name: "description", type: "STRING" }
+        ]
+      },
+      {
+        name: "payment_lookup",
+        columns: [
+          { name: "payment_type_id", type: "STRING" },
+          { name: "payment_description", type: "STRING" }
         ]
       }
     ]
@@ -34,7 +60,7 @@ export const DATASETS: Dataset[] = [
   {
     id: "google_trends",
     name: "Google Trends",
-    description: "Search interest data for various terms over time.",
+    description: "Search interest data for various terms over time, including international and metro-level breakdowns.",
     icon: "chart",
     tables: [
       {
@@ -42,9 +68,29 @@ export const DATASETS: Dataset[] = [
         columns: [
           { name: "term", type: "STRING" },
           { name: "country_name", type: "STRING" },
+          { name: "region_name", type: "STRING" },
           { name: "week", type: "DATE" },
           { name: "score", type: "INTEGER" },
-          { name: "rank", type: "INTEGER" }
+          { name: "rank", type: "INTEGER" },
+          { name: "percent_gain", type: "FLOAT" },
+          { name: "refresh_date", type: "TIMESTAMP" }
+        ]
+      },
+      {
+        name: "top_rising_terms",
+        columns: [
+          { name: "term", type: "STRING" },
+          { name: "country_code", type: "STRING" },
+          { name: "week", type: "DATE" },
+          { name: "growth_percentage", type: "FLOAT" }
+        ]
+      },
+      {
+        name: "us_metro_map",
+        columns: [
+          { name: "dma_id", type: "INTEGER" },
+          { name: "dma_name", type: "STRING" },
+          { name: "state_name", type: "STRING" }
         ]
       }
     ]
@@ -52,16 +98,21 @@ export const DATASETS: Dataset[] = [
   {
     id: "github_repos",
     name: "GitHub Public Data",
-    description: "Commits, languages, and licenses from public repositories.",
+    description: "Massive dataset of open source code, commits, licenses, and file contents.",
     icon: "github",
     tables: [
       {
         name: "commits",
         columns: [
           { name: "commit", type: "STRING" },
+          { name: "tree", type: "STRING" },
+          { name: "parent", type: "STRING" },
           { name: "author", type: "STRING" },
+          { name: "committer", type: "STRING" },
+          { name: "subject", type: "STRING" },
           { name: "message", type: "STRING" },
-          { name: "repo_name", type: "STRING" }
+          { name: "repo_name", type: "STRING" },
+          { name: "encoding", type: "STRING" }
         ]
       },
       {
@@ -71,13 +122,29 @@ export const DATASETS: Dataset[] = [
           { name: "language", type: "STRING" },
           { name: "bytes", type: "INTEGER" }
         ]
+      },
+      {
+        name: "licenses",
+        columns: [
+          { name: "repo_name", type: "STRING" },
+          { name: "license", type: "STRING" }
+        ]
+      },
+      {
+        name: "files",
+        columns: [
+          { name: "repo_name", type: "STRING" },
+          { name: "path", type: "STRING" },
+          { name: "mode", type: "INTEGER" },
+          { name: "id", type: "STRING" }
+        ]
       }
     ]
   },
   {
     id: "stackoverflow",
     name: "Stack Overflow",
-    description: "Questions, answers, and user data from the world's largest developer community.",
+    description: "Complete archive of Stack Overflow questions, answers, comments, badges and user reputation.",
     icon: "stackoverflow",
     tables: [
       {
@@ -85,9 +152,16 @@ export const DATASETS: Dataset[] = [
         columns: [
           { name: "id", type: "INTEGER" },
           { name: "display_name", type: "STRING" },
-          { name: "reputation", type: "INTEGER" },
+          { name: "about_me", type: "STRING" },
+          { name: "age", type: "INTEGER" },
           { name: "creation_date", type: "TIMESTAMP" },
-          { name: "location", type: "STRING" }
+          { name: "last_access_date", type: "TIMESTAMP" },
+          { name: "location", type: "STRING" },
+          { name: "reputation", type: "INTEGER" },
+          { name: "up_votes", type: "INTEGER" },
+          { name: "down_votes", type: "INTEGER" },
+          { name: "views", type: "INTEGER" },
+          { name: "profile_image_url", type: "STRING" }
         ]
       },
       {
@@ -96,56 +170,27 @@ export const DATASETS: Dataset[] = [
           { name: "id", type: "INTEGER" },
           { name: "title", type: "STRING" },
           { name: "body", type: "STRING" },
+          { name: "accepted_answer_id", type: "INTEGER" },
+          { name: "answer_count", type: "INTEGER" },
+          { name: "comment_count", type: "INTEGER" },
+          { name: "creation_date", type: "TIMESTAMP" },
+          { name: "favorite_count", type: "INTEGER" },
           { name: "owner_user_id", type: "INTEGER" },
           { name: "score", type: "INTEGER" },
-          { name: "tags", type: "STRING" }
-        ]
-      }
-    ]
-  },
-  {
-    id: "austin_bikeshare",
-    name: "Austin Bike Share",
-    description: "Austin B-Cycle trips and station statuses.",
-    icon: "bike",
-    tables: [
-      {
-        name: "trips",
-        columns: [
-          { name: "trip_id", type: "INTEGER" },
-          { name: "subscriber_type", type: "STRING" },
-          { name: "start_station_name", type: "STRING" },
-          { name: "end_station_name", type: "STRING" },
-          { name: "duration_minutes", type: "INTEGER" },
-          { name: "start_time", type: "TIMESTAMP" }
+          { name: "tags", type: "STRING" },
+          { name: "view_count", type: "INTEGER" }
         ]
       },
       {
-        name: "stations",
-        columns: [
-          { name: "station_id", type: "INTEGER" },
-          { name: "name", type: "STRING" },
-          { name: "status", type: "STRING" },
-          { name: "location", type: "GEOGRAPHY" }
-        ]
-      }
-    ]
-  },
-  {
-    id: "hacker_news",
-    name: "Hacker News",
-    description: "Stories and comments from Y Combinator's Hacker News.",
-    icon: "news",
-    tables: [
-      {
-        name: "stories",
+        name: "posts_answers",
         columns: [
           { name: "id", type: "INTEGER" },
-          { name: "title", type: "STRING" },
-          { name: "url", type: "STRING" },
-          { name: "score", type: "INTEGER" },
-          { name: "time", type: "TIMESTAMP" },
-          { name: "by", type: "STRING" }
+          { name: "body", type: "STRING" },
+          { name: "comment_count", type: "INTEGER" },
+          { name: "creation_date", type: "TIMESTAMP" },
+          { name: "owner_user_id", type: "INTEGER" },
+          { name: "parent_id", type: "INTEGER" },
+          { name: "score", type: "INTEGER" }
         ]
       },
       {
@@ -153,9 +198,129 @@ export const DATASETS: Dataset[] = [
         columns: [
           { name: "id", type: "INTEGER" },
           { name: "text", type: "STRING" },
+          { name: "creation_date", type: "TIMESTAMP" },
+          { name: "post_id", type: "INTEGER" },
+          { name: "user_id", type: "INTEGER" },
+          { name: "score", type: "INTEGER" }
+        ]
+      },
+      {
+        name: "badges",
+        columns: [
+          { name: "id", type: "INTEGER" },
+          { name: "name", type: "STRING" },
+          { name: "date", type: "TIMESTAMP" },
+          { name: "user_id", type: "INTEGER" },
+          { name: "class", type: "INTEGER" },
+          { name: "tag_based", type: "BOOLEAN" }
+        ]
+      }
+    ]
+  },
+  {
+    id: "austin_bikeshare",
+    name: "Austin Bike Share",
+    description: "Bike share trips, station status, and local weather data.",
+    icon: "bike",
+    tables: [
+      {
+        name: "bikeshare_trips",
+        columns: [
+          { name: "trip_id", type: "INTEGER" },
+          { name: "subscriber_type", type: "STRING" },
+          { name: "bike_id", type: "STRING" },
+          { name: "start_time", type: "TIMESTAMP" },
+          { name: "start_station_id", type: "INTEGER" },
+          { name: "start_station_name", type: "STRING" },
+          { name: "end_station_id", type: "INTEGER" },
+          { name: "end_station_name", type: "STRING" },
+          { name: "duration_minutes", type: "INTEGER" }
+        ]
+      },
+      {
+        name: "bikeshare_stations",
+        columns: [
+          { name: "station_id", type: "INTEGER" },
+          { name: "name", type: "STRING" },
+          { name: "status", type: "STRING" },
+          { name: "address", type: "STRING" },
+          { name: "alternate_name", type: "STRING" },
+          { name: "city_asset_number", type: "INTEGER" },
+          { name: "property_type", type: "STRING" },
+          { name: "number_of_docks", type: "INTEGER" },
+          { name: "power_type", type: "STRING" },
+          { name: "footprint_length", type: "INTEGER" },
+          { name: "footprint_width", type: "INTEGER" },
+          { name: "location", type: "GEOGRAPHY" }
+        ]
+      },
+      {
+        name: "weather",
+        columns: [
+          { name: "date", type: "DATE" },
+          { name: "temp_high", type: "FLOAT" },
+          { name: "temp_low", type: "FLOAT" },
+          { name: "precip", type: "FLOAT" },
+          { name: "events", type: "STRING" }
+        ]
+      }
+    ]
+  },
+  {
+    id: "hacker_news",
+    name: "Hacker News",
+    description: "Stories, comments, jobs, and pollution data from Y Combinator.",
+    icon: "news",
+    tables: [
+      {
+        name: "full",
+        columns: [
+          { name: "id", type: "INTEGER" },
+          { name: "title", type: "STRING" },
+          { name: "url", type: "STRING" },
+          { name: "text", type: "STRING" },
+          { name: "dead", type: "BOOLEAN" },
+          { name: "by", type: "STRING" },
+          { name: "score", type: "INTEGER" },
+          { name: "time", type: "INTEGER" },
+          { name: "timestamp", type: "TIMESTAMP" },
+          { name: "type", type: "STRING" },
           { name: "parent", type: "INTEGER" },
-          { name: "time", type: "TIMESTAMP" },
-          { name: "by", type: "STRING" }
+          { name: "descendants", type: "INTEGER" },
+          { name: "ranking", type: "INTEGER" },
+          { name: "deleted", type: "BOOLEAN" }
+        ]
+      },
+      {
+        name: "stories",
+        columns: [
+          { name: "id", type: "INTEGER" },
+          { name: "by", type: "STRING" },
+          { name: "score", type: "INTEGER" },
+          { name: "time", type: "INTEGER" },
+          { name: "time_ts", type: "TIMESTAMP" },
+          { name: "title", type: "STRING" },
+          { name: "url", type: "STRING" },
+          { name: "text", type: "STRING" },
+          { name: "deleted", type: "BOOLEAN" },
+          { name: "dead", type: "BOOLEAN" },
+          { name: "descendants", type: "INTEGER" },
+          { name: "author", type: "STRING" }
+        ]
+      },
+      {
+        name: "comments",
+        columns: [
+          { name: "id", type: "INTEGER" },
+          { name: "by", type: "STRING" },
+          { name: "author", type: "STRING" },
+          { name: "time", type: "INTEGER" },
+          { name: "time_ts", type: "TIMESTAMP" },
+          { name: "text", type: "STRING" },
+          { name: "parent", type: "INTEGER" },
+          { name: "deleted", type: "BOOLEAN" },
+          { name: "dead", type: "BOOLEAN" },
+          { name: "ranking", type: "INTEGER" }
         ]
       }
     ]

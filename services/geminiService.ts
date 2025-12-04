@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Challenge, Dataset, QueryResult, Difficulty } from "../types";
 
@@ -14,42 +15,59 @@ const getAiClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
+// BUSINESS SCENARIOS FOR PROCEDURAL GENERATION
+// This ensures the AI doesn't just ask "Select *", but roleplays real business needs.
+const SCENARIOS = [
+    "Fraud Detection Specialist",
+    "Marketing Analytics Manager",
+    "Product Growth Lead",
+    "Financial Auditor",
+    "Data Quality Engineer",
+    "Customer Success Ops",
+    "Supply Chain Logistican",
+    "Compliance Officer"
+];
+
 export const generateChallenge = async (dataset: Dataset, difficulty: Difficulty): Promise<Challenge> => {
   const ai = getAiClient();
   const schemaDescription = dataset.tables.map(t => 
     `Table: ${t.name}\nColumns: ${t.columns.map(c => `${c.name} (${c.type})`).join(', ')}`
   ).join('\n\n');
 
+  // Select a random business scenario to drive diversity
+  const scenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+
   let difficultyConstraints = "";
   if (difficulty === 'Beginner') {
     difficultyConstraints = `
-      STRICT CONSTRAINT: VERY SIMPLE QUERIES ONLY.
-      - Use ONLY single-table SELECT statements.
-      - NO Joins.
-      - NO Group By.
-      - NO Subqueries.
-      - Basic WHERE clauses only (e.g. specific IDs, exact string matches, simple numbers).
-      - Example goal: "Find the name of the user with ID 5" or "List all rows where status is 'active'".
+      STRICT CONSTRAINT: BEGINNER LEVEL ONLY.
+      - ABSOLUTELY NO JOINs.
+      - ABSOLUTELY NO GROUP BY or AGGREGATE FUNCTIONS (COUNT, SUM, AVG).
+      - ABSOLUTELY NO SUBQUERIES.
+      - Task MUST be solvable with: SELECT [columns] FROM [table] WHERE [simple_condition] ORDER BY [column] LIMIT [n].
+      - Keep logic very simple: "Find trips where fare is > 50" or "List users from Canada".
     `;
   } else if (difficulty === 'Intermediate') {
     difficultyConstraints = `
-      CONSTRAINT: Moderate complexity.
-      - Use INNER JOIN or LEFT JOIN.
-      - Use Aggregate functions (COUNT, SUM, AVG) with GROUP BY.
-      - Standard business reporting questions.
+      STRICT CONSTRAINT: INTERMEDIATE LEVEL.
+      - MUST use basic Aggregation (COUNT, SUM, AVG, MIN, MAX) with GROUP BY.
+      - OR use INNER/LEFT JOIN between two tables.
+      - Goal: Reporting and summarization.
     `;
   } else {
     difficultyConstraints = `
-      CONSTRAINT: Advanced SQL.
-      - Use Window Functions (ROW_NUMBER, RANK).
-      - Use CTEs (Common Table Expressions).
-      - Complex Joins or Self Joins.
-      - Subqueries or HAVING clauses.
+      STRICT CONSTRAINT: ADVANCED LEVEL.
+      - MUST use Window Functions (ROW_NUMBER, LEAD, LAG) OR CTEs (WITH clause).
+      - OR use Complex Multi-Joins (3+ tables).
+      - OR use Subqueries in WHERE or HAVING.
+      - Goal: Complex analytical reasoning or cleaning.
     `;
   }
 
   const prompt = `
-    You are a SQL instructor creating a challenge for a student.
+    You are a Senior SQL Instructor acting as a ${scenario}.
+    Your goal is to create a realistic business challenge for a junior analyst using the provided dataset.
+
     Dataset: ${dataset.name}
     Difficulty: ${difficulty}
     
@@ -59,10 +77,14 @@ export const generateChallenge = async (dataset: Dataset, difficulty: Difficulty
     ${schemaDescription}
 
     Create a unique SQL challenge. 
-    1. The 'title' should be catchy.
-    2. The 'description' should be a clear business question requesting data.
-    3. Provide 3 progressive 'hints' that guide the user on concepts (e.g., "Think about filtering the results using...").
+    1. The 'title' should be catchy and related to the scenario (e.g. "Suspicious Fares", "Viral Post Analysis").
+    2. The 'description' should be a clear business question requesting data. Do not just say "Select X", say "The marketing team needs..." or "We found a bug...".
+    3. Provide 3 progressive 'hints'.
+       - Hint 1: Conceptual (What fields to look at).
+       - Hint 2: Structural (Keywords to use).
+       - Hint 3: Partial Syntax (e.g. "Try using WHERE payment_type = ...").
     4. Define 'validationCriteria' describing what the result set should contain.
+    5. Set 'points' between 50 and 500 based on difficulty.
     
     Response must be JSON.
   `;
@@ -100,11 +122,11 @@ export const generateChallenge = async (dataset: Dataset, difficulty: Difficulty
     // Fallback for demo stability
     return {
       id: crypto.randomUUID(),
-      title: "Simple Select",
-      description: "Select the first 10 rows from the main table.",
+      title: "Data Exploration 101",
+      description: "We need to verify the integrity of our main table. Select the first 10 rows to inspect the data formats.",
       hints: ["Use SELECT *", "Use LIMIT 10"],
-      validationCriteria: "Returns 10 rows",
-      points: 10,
+      validationCriteria: "Returns 10 rows from the primary table.",
+      points: 50,
       datasetId: dataset.id,
       difficulty
     };
@@ -128,6 +150,7 @@ export const validateAndRunQuery = async (
          durationMs: 0,
          bytesProcessed: 0,
          costEstimate: 0,
+         totalRowCount: 0,
          error: "Security Alert: Only SELECT statements are allowed. DML/DDL commands are blocked.",
          isDryRun: false
        }
@@ -152,12 +175,16 @@ export const validateAndRunQuery = async (
     2. If the query is invalid (syntax error, wrong column names), return a JSON with a single key "error" describing the issue.
     3. If valid, generate a JSON object with:
        - "columns": array of string column names.
-       - "rows": array of objects representing the result data (max 10 rows). Keys must match column names.
+       - "rows": array of objects representing the result data.
+         **IMPORTANT**: 
+         - Generate exactly 50 rows of realistic sample data so the user can scroll.
+         - If the query has a LIMIT N, generate N rows.
+       - "totalRowCount": integer. ESTIMATE the total number of rows this query would return in a real full-scale database (e.g., if SELECT * FROM trips, say 14502).
        - "bytesProcessed": integer estimate.
        - "durationMs": integer execution time.
     
     Data Generation:
-    - Create realistic data based on column types.
+    - Create highly realistic data based on column types and the nature of the dataset (e.g. realistic taxi fares, real looking timestamps).
     - Handle nulls if appropriate.
     
     Response MUST be raw JSON.
@@ -178,7 +205,7 @@ export const validateAndRunQuery = async (
   } catch (e) {
     return {
         result: {
-            rows: [], columns: [], durationMs: 0, bytesProcessed: 0, costEstimate: 0,
+            rows: [], columns: [], durationMs: 0, bytesProcessed: 0, costEstimate: 0, totalRowCount: 0,
             error: "Engine Simulation Error: " + (e as Error).message
         }
     }
@@ -192,6 +219,7 @@ export const validateAndRunQuery = async (
         durationMs: 0,
         bytesProcessed: 0,
         costEstimate: 0,
+        totalRowCount: 0,
         error: executionData.error
       }
     };
@@ -202,6 +230,7 @@ export const validateAndRunQuery = async (
     columns: executionData.columns || [],
     durationMs: executionData.durationMs || 500,
     bytesProcessed: executionData.bytesProcessed || 1024,
+    totalRowCount: executionData.totalRowCount || (executionData.rows || []).length,
     costEstimate: (executionData.bytesProcessed || 1024) * 0.000000005, // Rough BigQuery cost
     isDryRun: false
   };
@@ -217,12 +246,13 @@ export const validateAndRunQuery = async (
       Validation Criteria: ${challenge.validationCriteria}
       
       User Query: ${query}
-      User Result Sample: ${JSON.stringify(result.rows.slice(0, 3))}
+      User Result Sample (First 3 rows): ${JSON.stringify(result.rows.slice(0, 3))}
       
       Tasks:
       1. Determine if the user solved the challenge (passed: boolean).
       2. Provide feedback message (feedback: string).
       3. Provide a brief educational explanation of WHY it is correct or what concept they missed (explanation: string).
+         If they missed it, explain the concept (e.g. "You need a WHERE clause to filter").
       
       Return JSON.
     `;

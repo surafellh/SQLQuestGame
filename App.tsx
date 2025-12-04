@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Database, 
@@ -68,6 +69,7 @@ const App = () => {
   // Editor interactions
   const [insertText, setInsertText] = useState<string | null>(null);
   const [insertTrigger, setInsertTrigger] = useState(0);
+  const [externalQueryUpdate, setExternalQueryUpdate] = useState<{ text: string, timestamp: number } | null>(null);
 
   // Challenge Loading
   const [loadingChallenge, setLoadingChallenge] = useState(false);
@@ -141,14 +143,17 @@ const App = () => {
       }
   };
 
-  const handleRunQuery = async (query: string) => {
+  const handleRunQuery = async (query: string, isPreview = false) => {
     if (!selectedDataset) return;
     
     setIsQueryRunning(true);
     // Simulate network delay for realism if simulation is too fast
     await new Promise(r => setTimeout(r, 600));
 
-    const resultData = await validateAndRunQuery(query, selectedDataset, currentChallenge);
+    // If previewing, ignore the current challenge for validation so it doesn't count as a failed attempt
+    const challengeToValidate = isPreview ? null : currentChallenge;
+
+    const resultData = await validateAndRunQuery(query, selectedDataset, challengeToValidate);
     
     setQueryResult(resultData.result);
     setValidationMsg(resultData.validationMessage);
@@ -161,17 +166,30 @@ const App = () => {
         setMobileTab('results');
     }
 
-    if (resultData.passed) {
-        if (currentUser) {
-            const updatedUser = {
-                ...currentUser,
-                xp: currentUser.xp + (currentChallenge?.points || 0),
-                completedChallenges: [...currentUser.completedChallenges, currentChallenge?.id || ''],
-                level: Math.floor((currentUser.xp + (currentChallenge?.points || 0)) / 1000) + 1
-            };
-            handleUpdateUser(updatedUser);
+    if (resultData.passed && !isPreview) {
+        if (currentUser && currentChallenge) {
+            // Prevent farming points from the exact same challenge instance repeatedly
+            // But allow farming if they generated a new challenge (intended behavior for practice)
+            if (!currentUser.completedChallenges.includes(currentChallenge.id)) {
+                const points = currentChallenge.points || 0;
+                const updatedUser = {
+                    ...currentUser,
+                    xp: currentUser.xp + points,
+                    completedChallenges: [...currentUser.completedChallenges, currentChallenge.id],
+                    level: Math.floor((currentUser.xp + points) / 1000) + 1
+                };
+                handleUpdateUser(updatedUser);
+            }
         }
     }
+  };
+
+  const handlePreviewTable = (tableName: string) => {
+     const q = `SELECT * FROM ${tableName} LIMIT 100`;
+     setExternalQueryUpdate({ text: q, timestamp: Date.now() });
+     
+     // Auto run the preview query
+     handleRunQuery(q, true);
   };
 
   const handleInsertText = (text: string) => {
@@ -351,7 +369,8 @@ const App = () => {
         >
           <SchemaExplorer 
             dataset={selectedDataset} 
-            onInsertText={handleInsertText} 
+            onInsertText={handleInsertText}
+            onPreviewTable={handlePreviewTable}
           />
         </div>
 
@@ -390,10 +409,11 @@ const App = () => {
           <div className="flex-1 overflow-hidden relative">
             <SqlComposer 
               initialQuery="" 
-              onRun={handleRunQuery} 
+              onRun={(q) => handleRunQuery(q, false)} 
               isRunning={isQueryRunning}
               insertText={insertText}
               insertTrigger={insertTrigger}
+              externalQueryUpdate={externalQueryUpdate}
               costEstimate={queryResult ? queryResult.costEstimate : null}
             />
           </div>

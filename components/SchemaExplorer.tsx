@@ -1,13 +1,15 @@
+
 import React, { useState } from 'react';
 import { Dataset } from '../types';
-import { ChevronRight, ChevronDown, Table, Columns } from 'lucide-react';
+import { ChevronRight, ChevronDown, Table, Columns, Eye } from 'lucide-react';
 
 interface SchemaExplorerProps {
   dataset: Dataset;
   onInsertText: (text: string) => void;
+  onPreviewTable: (tableName: string) => void;
 }
 
-export const SchemaExplorer: React.FC<SchemaExplorerProps> = ({ dataset, onInsertText }) => {
+export const SchemaExplorer: React.FC<SchemaExplorerProps> = ({ dataset, onInsertText, onPreviewTable }) => {
   const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>(
     dataset.tables.reduce((acc, t) => ({ ...acc, [t.name]: true }), {})
   );
@@ -27,22 +29,33 @@ export const SchemaExplorer: React.FC<SchemaExplorerProps> = ({ dataset, onInser
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
         {dataset.tables.map(table => (
           <div key={table.name} className="mb-4">
-            <div 
-              className="flex items-center gap-2 p-2 hover:bg-quest-700 rounded cursor-pointer text-blue-300 font-medium transition-colors"
-              onClick={() => toggleTable(table.name)}
-            >
-              {expandedTables[table.name] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              <Table size={16} />
-              <span 
-                draggable 
-                onDragStart={(e) => e.dataTransfer.setData("text/plain", table.name)}
-                onClick={(e) => { e.stopPropagation(); onInsertText(table.name); }}
-              >
-                {table.name}
-              </span>
+            <div className="flex items-center justify-between p-2 hover:bg-quest-700 rounded group transition-colors">
+                <div 
+                  className="flex items-center gap-2 cursor-pointer text-blue-300 font-medium flex-1 overflow-hidden"
+                  onClick={() => toggleTable(table.name)}
+                >
+                  {expandedTables[table.name] ? <ChevronDown size={16} className="shrink-0" /> : <ChevronRight size={16} className="shrink-0" />}
+                  <Table size={16} className="shrink-0" />
+                  <span 
+                    draggable 
+                    onDragStart={(e) => e.dataTransfer.setData("text/plain", table.name)}
+                    onClick={(e) => { e.stopPropagation(); onInsertText(table.name); }}
+                    className="truncate hover:text-white transition-colors"
+                  >
+                    {table.name}
+                  </span>
+                </div>
+                
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onPreviewTable(table.name); }}
+                    className="p-1.5 text-gray-500 opacity-0 group-hover:opacity-100 hover:text-white hover:bg-quest-600 rounded transition-all shrink-0"
+                    title="Preview Table Data (Limit 100)"
+                >
+                    <Eye size={14} />
+                </button>
             </div>
 
             {expandedTables[table.name] && (
@@ -55,11 +68,11 @@ export const SchemaExplorer: React.FC<SchemaExplorerProps> = ({ dataset, onInser
                     onDragStart={(e) => e.dataTransfer.setData("text/plain", col.name)}
                     onClick={() => onInsertText(col.name)}
                   >
-                    <div className="flex items-center gap-2">
-                      <Columns size={14} className="text-quest-500 group-hover:text-quest-300" />
-                      <span className="group-hover:text-white transition-colors">{col.name}</span>
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Columns size={14} className="text-quest-500 group-hover:text-quest-300 shrink-0" />
+                      <span className="group-hover:text-white transition-colors truncate">{col.name}</span>
                     </div>
-                    <span className="text-xs text-quest-600 font-mono">{col.type}</span>
+                    <span className="text-xs text-quest-600 font-mono shrink-0 ml-2">{col.type}</span>
                   </div>
                 ))}
               </div>
